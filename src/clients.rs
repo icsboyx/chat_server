@@ -18,7 +18,7 @@ pub fn start_client(client: &mut Arc<Mutex<TcpStream>>) {
                     break;
                 }
                 if payload == [255, 244, 255, 253, 6] {
-                    println!("CLient sent: ^C");
+                    println!("Client sent: ^C");
                     client.shutdown(std::net::Shutdown::Both).unwrap();
                     break;
                 }
