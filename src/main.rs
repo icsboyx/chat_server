@@ -9,9 +9,8 @@ use msg_router::*;
 
 fn main() {
     let mut bus: Bus<DynamicValue> = Bus::new(10);
-    let msg_router_rx = bus.add_rx();
 
-    msg_router(msg_router_rx);
+    msg_router(&mut bus);
 
     let listener = TcpListener::bind("127.0.0.1:23456").expect("Failed to bind");
     let mut active_clients: HashMap<String, TcpStream> = HashMap::new();

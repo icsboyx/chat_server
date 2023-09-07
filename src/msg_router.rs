@@ -1,8 +1,9 @@
 use crate::{clients::start_client, general_def::*};
-use bus::BusReader;
+use bus::Bus;
 use std::thread;
 
-pub fn msg_router(mut bus_rx: BusReader<DynamicValue>) {
+pub fn msg_router(bus: &mut Bus<DynamicValue>) {
+    let mut bus_rx = bus.add_rx();
     let msg_bus = thread::Builder::new().name("msg_bus".to_string());
     msg_bus
         .spawn(move || {
@@ -15,7 +16,7 @@ pub fn msg_router(mut bus_rx: BusReader<DynamicValue>) {
                             .spawn(move || start_client(&mut payload.stream))
                             .unwrap();
                     }
-                    DynamicValue::ChatMsg(payload) => {
+                    DynamicValue::ChatMsg(_payload) => {
                         todo!();
                     }
                 }
