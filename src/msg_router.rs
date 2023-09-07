@@ -1,14 +1,24 @@
-use crate::general_def::*;
-use std::{sync::mpsc::Receiver, thread};
+use crate::{clients::start_client, general_def::*};
+use bus::BusReader;
+use std::thread;
 
-pub fn msg_router(receiver: Receiver<DynamicValueReturn>) {
+pub fn msg_router(mut bus_rx: BusReader<DynamicValue>) {
     let msg_bus = thread::Builder::new().name("msg_bus".to_string());
     msg_bus
         .spawn(move || {
-            for msg in receiver {
+            while let Ok(msg) = bus_rx.recv() {
                 match msg {
-                    DynamicValueReturn::ClientREF(payload) => println!("{:#?}", payload),
-                    DynamicValueReturn::ClientMSG(payload) => println!("{:#?}", payload),
+                    DynamicValue::Client(mut payload) => {
+                        println!("{:#?}", payload);
+                        thread::Builder::new()
+                            .name(payload.stream_id)
+                            .spawn(move || start_client(&mut payload.stream))
+                            .unwrap();
+                    }
+                    DynamicValue::ChatMsg(payload) => {
+                        println!("{:#?}", payload);
+                        todo!();
+                    }
                 }
             }
         })

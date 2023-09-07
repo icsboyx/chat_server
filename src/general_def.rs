@@ -2,7 +2,25 @@ use std::{
     collections::hash_map::DefaultHasher,
     hash::{Hash, Hasher},
     net::TcpStream,
+    sync::{Arc, Mutex, RwLock},
 };
+
+pub trait ArcMutex {
+    fn arc_mutex(&self) -> Arc<Mutex<Self>>;
+}
+impl ArcMutex for TcpStream {
+    fn arc_mutex(&self) -> Arc<Mutex<Self>> {
+        Arc::new(Mutex::new(self.try_clone().unwrap()))
+    }
+}
+pub trait ArcRwLock {
+    fn arc_rwlock(&self) -> Arc<RwLock<Self>>;
+}
+impl ArcRwLock for TcpStream {
+    fn arc_rwlock(&self) -> Arc<RwLock<Self>> {
+        Arc::new(RwLock::new(self.try_clone().unwrap()))
+    }
+}
 
 pub trait RemoteID {
     fn remote_id(&self) -> String;
@@ -29,12 +47,12 @@ pub trait KeyValuePayload {
     fn value(self) -> DynamicValue;
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Client {
     pub stream_id: String,
-    pub stream: TcpStream,
+    pub stream: Arc<Mutex<TcpStream>>,
 }
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Message {
     pub sender: String,
     pub destination: Destinations,
@@ -42,7 +60,7 @@ pub struct Message {
 }
 
 #[allow(dead_code)]
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Destinations {
     Server,
     Private,
@@ -50,7 +68,7 @@ pub enum Destinations {
     Rooms,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum DynamicValue {
     Client(Client),
     ChatMsg(Message),
