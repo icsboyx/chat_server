@@ -7,16 +7,15 @@ pub fn msg_router(mut bus_rx: BusReader<DynamicValue>) {
     msg_bus
         .spawn(move || {
             while let Ok(msg) = bus_rx.recv() {
+                println!("[MSG_ROUTER]: {:#?}", msg);
                 match msg {
                     DynamicValue::Client(mut payload) => {
-                        println!("{:#?}", payload);
                         thread::Builder::new()
                             .name(payload.stream_id)
                             .spawn(move || start_client(&mut payload.stream))
                             .unwrap();
                     }
                     DynamicValue::ChatMsg(payload) => {
-                        println!("{:#?}", payload);
                         todo!();
                     }
                 }
