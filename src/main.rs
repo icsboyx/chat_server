@@ -1,4 +1,4 @@
-use bus::Bus;
+use crossbeam_channel::{unbounded, Receiver, Sender};
 use std::collections::HashMap;
 use std::net::{TcpListener, TcpStream};
 mod general_def;
@@ -8,9 +8,14 @@ mod msg_router;
 use msg_router::*;
 
 fn main() {
-    let mut bus: Bus<DynamicValue> = Bus::new(10);
+    let (bus_sender, bus_reader): (Sender<DynamicValue>, Receiver<DynamicValue>) = unbounded();
+    let bus = MessageBus {
+        sender: bus_sender,
+        receiver: bus_reader,
+    };
 
-    msg_router(&mut bus);
+    // clients_listener(&mut bus);
+    msg_router(&mut bus.clone());
 
     let listener = TcpListener::bind("127.0.0.1:23456").expect("Failed to bind");
     let mut active_clients: HashMap<String, TcpStream> = HashMap::new();
@@ -24,10 +29,12 @@ fn main() {
             active_clients.insert(stream.remote_id(), stream);
 
             //Sen Client connection on crossbeam_channel
-            bus.broadcast(DynamicValue::Client(Client {
-                stream_id: remote_id.clone(),
-                stream: cloned_stream.arc_mutex(),
-            }));
+            bus.sender
+                .send(DynamicValue::Client(Client {
+                    stream_id: remote_id.clone(),
+                    stream: cloned_stream.arc_mutex(),
+                }))
+                .unwrap();
             // bus_tx_clone
             //     .send(DynamicValue::Client(Client {
             //         stream_id: remote_id.clone(),
