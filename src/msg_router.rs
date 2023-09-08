@@ -12,14 +12,9 @@ pub fn msg_router(bus: &mut MessageBus<DynamicValue>) {
                 match msg {
                     DynamicValue::Client(payload) => {
                         start_client(&mut payload.stream.lock().unwrap(), &mut client_bus_clone);
-                        // thread::Builder::new()
-                        //     .name(payload.stream_id)
-                        //     .spawn(move || {
-                        //         start_client(&mut payload.stream, &mut client_bus_clone)
-                        //     });
                     }
                     DynamicValue::ChatMsg(_payload) => {}
-                    DynamicValue::ChatRawMSG(_) => {}
+                    DynamicValue::ChatRawMSG(_payload) => {}
                 }
             }
         })
