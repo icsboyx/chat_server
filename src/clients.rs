@@ -18,7 +18,8 @@ use crate::general_def::*;
 //         .unwrap();
 // }
 
-pub fn start_client(client: &mut TcpStream, _bus: &mut MessageBus<DynamicValue>) {
+pub fn start_client(client: &mut TcpStream, bus: &mut MessageBus<DynamicValue>) {
+    let bus_clone = bus.clone();
     let mut client_clone = client.try_clone().unwrap();
 
     thread::Builder::new()
@@ -33,6 +34,14 @@ pub fn start_client(client: &mut TcpStream, _bus: &mut MessageBus<DynamicValue>)
                         client_clone.shutdown(std::net::Shutdown::Both).unwrap();
                         break;
                     }
+                    let string_payload = String::from_utf8(payload.to_vec()).unwrap();
+                    bus_clone
+                        .sender
+                        .send(DynamicValue::ChatRawMSG(RawMessage {
+                            sender: client_clone.remote_id(),
+                            payload: string_payload,
+                        }))
+                        .unwrap();
                     if payload == [255, 244, 255, 253, 6] {
                         println!("Client sent: ^C");
                         client_clone.shutdown(std::net::Shutdown::Both).unwrap();

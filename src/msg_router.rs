@@ -19,6 +19,7 @@ pub fn msg_router(bus: &mut MessageBus<DynamicValue>) {
                         //     });
                     }
                     DynamicValue::ChatMsg(_payload) => {}
+                    DynamicValue::ChatRawMSG(_) => {}
                 }
             }
         })

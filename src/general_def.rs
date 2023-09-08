@@ -67,6 +67,11 @@ pub struct Message {
     pub destination: Destinations,
     pub payload: String,
 }
+#[derive(Debug, Clone)]
+pub struct RawMessage {
+    pub sender: String,
+    pub payload: String,
+}
 
 #[allow(dead_code)]
 #[derive(Debug, Clone)]
@@ -81,6 +86,7 @@ pub enum Destinations {
 pub enum DynamicValue {
     Client(Client),
     ChatMsg(Message),
+    ChatRawMSG(RawMessage),
 }
 
 impl KeyValuePayload for Client {
