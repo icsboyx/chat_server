@@ -1,7 +1,5 @@
 {
     "cSpell.words": [
-        "Hasher",
-        "rwlock",
-        "Tcp"
+        "nonblocking"
     ]
 }

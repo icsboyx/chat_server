@@ -1,48 +1,55 @@
-use crossbeam_channel::{unbounded, Receiver, Sender};
-use std::collections::HashMap;
-use std::net::{TcpListener, TcpStream};
-mod general_def;
-use general_def::*;
-mod clients;
-mod msg_router;
-use msg_router::*;
+use mini_redis::Frame;
+use tokio::io::{AsyncReadExt, AsyncWriteExt};
+use tokio::net::TcpStream;
+use tokio::sync::mpsc::{self, UnboundedReceiver, UnboundedSender};
+use tokio::time::Duration;
 
-fn main() {
-    let (bus_sender, bus_reader): (Sender<DynamicValue>, Receiver<DynamicValue>) = unbounded();
-    let bus = MessageBus {
-        sender: bus_sender,
-        receiver: bus_reader,
-    };
+#[tokio::main]
+async fn main() {
+    let mut handles = Vec::new();
+    let (tx, mut rx): (UnboundedSender<String>, UnboundedReceiver<String>) =
+        mpsc::unbounded_channel();
 
-    // clients_listener(&mut bus);
-    msg_router(&mut bus.clone());
-
-    let listener = TcpListener::bind("127.0.0.1:23456").expect("Failed to bind");
-    let mut active_clients: HashMap<String, TcpStream> = HashMap::new();
-
-    // Start Listener for incoming connections
-    for stream_result in listener.incoming() {
-        if let Ok(stream) = stream_result {
-            let cloned_stream = stream.try_clone().expect("Failed to clone stream");
-            let remote_id = stream.remote_id();
-            // Add client to Client HashMap
-            active_clients.insert(stream.remote_id(), stream);
-
-            //Sen Client connection on crossbeam_channel
-            bus.sender
-                .send(DynamicValue::Client(Client {
-                    stream_id: remote_id.clone(),
-                    stream: cloned_stream.arc_mutex(),
-                }))
-                .unwrap();
-            // bus_tx_clone
-            //     .send(DynamicValue::Client(Client {
-            //         stream_id: remote_id.clone(),
-            //         stream: cloned_stream.arc_mutex(),
-            //     }))
-            //     .unwrap();
-        } else {
-            eprintln!("Failed to accept a client connection");
+    handles.push(tokio::spawn(async move {
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:23456")
+            .await
+            .unwrap();
+        while let Ok((socket, _)) = listener.accept().await {
+            let tx_clone = tx.clone();
+            tokio::spawn(async move {
+                process(socket, tx_clone).await;
+            });
         }
+    }));
+
+    handles.push(tokio::spawn(async move {
+        while let Some(r) = rx.recv().await {
+            println!("Bus received: {:?}", r);
+        }
+    }));
+
+    for handle in handles {
+        println!("GOT {:?}", handle.await.unwrap());
+    }
+}
+
+async fn process(mut socket: TcpStream, tx: UnboundedSender<String>) {
+    let mut buf = vec![0; 1024];
+    loop {
+        let n = socket
+            .read(&mut buf)
+            .await
+            .expect("failed to read data from socket");
+        tx.send(String::from_utf8_lossy(&buf[..n]).to_string())
+            .expect("send failed");
+
+        if n == 0 {
+            return;
+        }
+
+        socket
+            .write_all(&buf[..n])
+            .await
+            .expect("failed to write data to socket");
     }
 }
