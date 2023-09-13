@@ -30,21 +30,26 @@ async fn main() {
 async fn process(stream: TcpStream, tx: Sender<String>) {
     let id = stream.peer_addr().unwrap().to_string();
     let (mut stream_read, mut stream_write) = stream.into_split();
+
     let mut rx = tx.subscribe();
     let mut buf = vec![0; 1024];
 
-    tx.send(format!("Client {}, is now connected", id)).unwrap();
+    tx.send(format!("Client {}, is now connected\r\n", id)).unwrap();
 
     tokio::spawn(async move {
         loop {
             let payload = rx.recv().await.unwrap();
-            println!("Client {:#?}, received {}", id.to_string(), payload);
-            stream_write.write_all(payload.as_bytes()).await.unwrap();
+            if !payload.contains(id.as_str()) {
+                println!("Client {:#?}, received {}", id.to_string(), payload);
+                stream_write.write_all(payload.as_bytes()).await.unwrap();
+            }
         }
     });
+
     loop {
         let n = stream_read.read(&mut buf).await.expect("failed to read data from stream");
-        tx.send(String::from_utf8_lossy(&buf[..n]).to_string()).expect("send failed");
+        let payload = String::from_utf8_lossy(&buf[..n]).to_string();
+        tx.send(format!("{}\\{}", stream_read.peer_addr().unwrap(), payload)).expect("send failed");
         if n == 0 {
             return;
         }
