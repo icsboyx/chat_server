@@ -1,6 +1,5 @@
 use tokio::io::{ AsyncReadExt, AsyncWriteExt };
 use tokio::net::TcpStream;
-use tokio::net::tcp::{ ReadHalf, WriteHalf, OwnedWriteHalf, OwnedReadHalf };
 use tokio::sync::broadcast::{ self, Sender, Receiver };
 
 mod chat_engine;
@@ -14,8 +13,11 @@ async fn main() {
     handles.push(
         tokio::spawn(async move {
             let listener = tokio::net::TcpListener::bind("127.0.0.1:23456").await.unwrap();
-            while let (mut stream, _) = listener.accept().await.unwrap() {
-                tokio::spawn(process(stream, bus.0.clone()));
+            loop {
+                let (stream, _) = listener.accept().await.unwrap();
+                {
+                    tokio::spawn(process(stream, bus.0.clone()));
+                }
             }
         })
     );
