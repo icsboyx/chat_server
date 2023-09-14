@@ -1,7 +1,7 @@
-use std::{fmt::Display, net::TcpStream, sync::Arc};
+use std::{ fmt::{ Display, format, self }, net::TcpStream, sync::Arc };
 
 use bus::Bus;
-use crossbeam_channel::{unbounded, Receiver, Sender};
+use crossbeam_channel::{ unbounded, Receiver, Sender };
 
 #[derive(Debug, Clone)]
 pub struct CommunicationBus<T> {
@@ -54,9 +54,9 @@ macro_rules! pause {
 
 #[derive(Debug, Clone)]
 pub struct BusMessage {
-    pub command: String,
     pub sender: String,
     pub destination: String,
+    pub command: String,
     pub payload: String,
 }
 
@@ -70,14 +70,18 @@ impl BusMessage {
         }
     }
 
-    pub fn msg(&self) -> String {
-        format!(
-            "{}/{}/{}/{}",
-            self.command.to_uppercase(),
-            self.sender,
-            self.destination.to_uppercase(),
-            self.payload
-        )
+    pub fn format_msg(mut self, msg: String) -> Self {
+        if !msg.contains('/') {
+            self.destination = "broadcast".to_string();
+            self.payload = msg;
+        }
+        self
+    }
+}
+
+impl fmt::Display for BusMessage {
+    fn fmt(&self, f: &mut fmt::Formatter) -> std::result::Result<(), std::fmt::Error> {
+        writeln!(f, "{:#?}", self)
     }
 }
 
