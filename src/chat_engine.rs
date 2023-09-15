@@ -4,20 +4,13 @@ use crate::*;
 
 // let mut busses: HashMap<String, ClientBus<BusMessage>> = HashMap::new();
 
-pub async fn start_chat_engine(busses: HashMap<String, Sender<BusMessage>>) {
+pub async fn start_chat_engine(busses: Sender<BusMessage>) {
+    let mut local_receiver = busses.subscribe();
     loop {
-        for (id, bus) in busses.into_iter() {
-            let mut local_subscriber = bus.subscribe();
-            tokio::spawn(async move {
-                loop {
-                    let message = local_subscriber.recv().await.unwrap();
-                    println!("Bus {} received: {:?}", id, message);
-                }
-            });
-        }
+        let message = local_receiver.recv().await.unwrap();
+        println!("Bus received: {:?}", message);
     }
 }
-
 // loop {
 //     for
 

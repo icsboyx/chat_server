@@ -1,8 +1,10 @@
 use std::collections::HashMap;
+use std::sync::Arc;
 
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::TcpStream;
 use tokio::sync::broadcast::{Receiver, Sender};
+use tokio::sync::Mutex;
 mod gen_def;
 use gen_def::*;
 mod chat_engine;
@@ -12,10 +14,9 @@ use chat_engine::*;
 #[tokio::main]
 async fn main() {
     let mut handles = Vec::new();
-    let mut busses: HashMap<String, Sender<BusMessage>> = HashMap::new();
-    let mut bus_clone = busses.clone();
+    let client_bus = ClientBus::new();
 
-    handles.push(tokio::spawn(start_chat_engine(busses.clone())));
+    handles.push(tokio::spawn(start_chat_engine(client_bus.sender.clone())));
 
     handles.push(tokio::spawn(async move {
         let listener = tokio::net::TcpListener::bind("127.0.0.1:23456")
@@ -23,22 +24,12 @@ async fn main() {
             .unwrap();
         loop {
             let (stream, _) = listener.accept().await.unwrap();
-            let client_bus = ClientBus::new();
-            bus_clone.insert(
-                stream.peer_addr().unwrap().to_string(),
-                client_bus.sender.clone(),
-            );
             tokio::spawn(process(stream, client_bus.sender.clone()));
         }
     }));
 
     for handle in handles {
         println!("END GOT {:#?}", handle.await);
-    }
-    loop {
-        for bus in &busses {
-            println!("####: {:#?}", bus);
-        }
     }
 }
 
