@@ -9,6 +9,9 @@ pub async fn start_chat_engine(busses: Sender<BusMessage>) {
     loop {
         let message = local_receiver.recv().await.unwrap();
         println!("Bus received: {:#?}", message);
+        if !message.command.is_empty() {
+            check_command(message.command);
+        }
     }
 }
 // loop {
@@ -17,3 +20,5 @@ pub async fn start_chat_engine(busses: Sender<BusMessage>) {
 //     let r = rx.recv().await.unwrap();
 //     println!("Bus received: {:?}", r);
 // }
+
+fn check_command(command: String) {}

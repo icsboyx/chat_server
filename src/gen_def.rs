@@ -1,5 +1,4 @@
 use std::{
-    arch::x86_64::_SIDD_NEGATIVE_POLARITY,
     fmt::{self},
     net::TcpStream,
 };
@@ -87,13 +86,19 @@ impl BusMessage {
     }
 
     pub fn format_msg(mut self, msg: String) -> Self {
-        if !msg.starts_with('@') {
-            self.destination = "broadcast".to_string();
-            self.payload = msg;
-        } else if msg.contains(' ') {
-            let (destination, payload) = msg.split_once(' ').unwrap();
-            self.destination = destination.to_string()[1..].to_string();
-            self.payload = payload.to_string();
+        match msg {
+            c if c.starts_with('@') && c.contains(' ') => {
+                let (destination, payload) = c.split_once(' ').unwrap();
+                self.destination = destination.to_string()[1..].to_string();
+                self.payload = payload.to_string();
+            }
+            c if c.starts_with('/') => {
+                self.command = c[1..].to_string();
+            }
+            _ => {
+                self.destination = "broadcast".to_string();
+                self.payload = msg;
+            }
         }
         self
     }
@@ -103,4 +108,14 @@ impl fmt::Display for BusMessage {
     fn fmt(&self, f: &mut fmt::Formatter) -> std::result::Result<(), std::fmt::Error> {
         writeln!(f, "{:#?}", self)
     }
+}
+
+pub enum Commands {
+    Help,
+    List(ListType),
+    Error,
+}
+enum ListType {
+    User,
+    Channels,
 }
