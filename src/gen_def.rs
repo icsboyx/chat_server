@@ -1,30 +1,45 @@
-use std::{ fmt::{ Display, format, self }, net::TcpStream, sync::Arc };
+use std::{
+    fmt::{self},
+    net::TcpStream,
+};
 
-use bus::Bus;
-use crossbeam_channel::{ unbounded, Receiver, Sender };
+use tokio::sync::watch::{
+    channel as WATCHChannel, Receiver as WATCHReceiver, Sender as WATCHSender,
+};
 
-#[derive(Debug, Clone)]
-pub struct CommunicationBus<T> {
-    pub sender: Sender<T>,
-    pub receiver: Receiver<T>,
+#[derive(Debug)]
+pub struct MessageBus<T> {
+    pub sender: WATCHSender<T>,
+    pub receiver: WATCHReceiver<T>,
 }
 
-impl<T> CommunicationBus<T> {
-    pub fn new() -> Self {
-        let (bus_sender, bus_receiver) = unbounded();
-        CommunicationBus {
+#[allow(dead_code)]
+impl<T> MessageBus<T> {
+    pub fn new(initial_value: T) -> Self {
+        let (bus_sender, bus_receiver) = WATCHChannel(initial_value);
+        MessageBus {
             sender: bus_sender,
             receiver: bus_receiver,
         }
     }
 }
 
-#[derive(Debug, Clone)]
-pub enum DynamicValue {
-    Client(),
-    ClientOFF(),
-    ChatMsg(),
-    ChatRawMSG(),
+use tokio::sync::broadcast::{channel as BROADCASTChannel, Receiver, Sender};
+
+#[derive(Debug)]
+pub struct ClientBus<T: Clone> {
+    pub sender: Sender<T>,
+    pub receiver: Receiver<T>,
+}
+
+impl<T: Clone> ClientBus<T> {
+    pub fn new() -> Self {
+        let (bus_sender, bus_receiver) = BROADCASTChannel::<T>(1);
+        ClientBus {
+            sender: bus_sender,
+            receiver: bus_receiver,
+        }
+    }
 }
 
 pub trait RemoteID {
@@ -83,11 +98,4 @@ impl fmt::Display for BusMessage {
     fn fmt(&self, f: &mut fmt::Formatter) -> std::result::Result<(), std::fmt::Error> {
         writeln!(f, "{:#?}", self)
     }
-}
-
-#[derive(Debug, Clone)]
-pub enum Commands {
-    CltConn(String),
-    CltDis(String),
-    Msg,
 }
