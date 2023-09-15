@@ -8,7 +8,7 @@ pub async fn start_chat_engine(busses: Sender<BusMessage>) {
     let mut local_receiver = busses.subscribe();
     loop {
         let message = local_receiver.recv().await.unwrap();
-        println!("Bus received: {:?}", message);
+        println!("Bus received: {:#?}", message);
     }
 }
 // loop {

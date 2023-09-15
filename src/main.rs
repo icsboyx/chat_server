@@ -52,7 +52,9 @@ async fn process(stream: TcpStream, client_bus: Sender<BusMessage>) {
         loop {
             // let payload = rx.recv().await.unwrap();
             let payload = local_subscriber.recv().await.unwrap();
-            if payload.sender != id.clone() {
+            if (payload.destination == id.clone() || payload.destination == "broadcast")
+                && payload.sender != id.clone()
+            {
                 stream_write
                     .write_all(payload.to_string().as_bytes())
                     .await
