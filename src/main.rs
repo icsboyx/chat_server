@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::TcpStream;
 use tokio::sync::broadcast::{Receiver, Sender};
@@ -10,9 +12,10 @@ use chat_engine::*;
 #[tokio::main]
 async fn main() {
     let mut handles = Vec::new();
-    let client_bus = ClientBus::new();
+    let mut busses: HashMap<String, Sender<BusMessage>> = HashMap::new();
+    let mut bus_clone = busses.clone();
 
-    handles.push(tokio::spawn(start_chat_engine(client_bus.receiver)));
+    handles.push(tokio::spawn(start_chat_engine(busses.clone())));
 
     handles.push(tokio::spawn(async move {
         let listener = tokio::net::TcpListener::bind("127.0.0.1:23456")
@@ -20,14 +23,22 @@ async fn main() {
             .unwrap();
         loop {
             let (stream, _) = listener.accept().await.unwrap();
-            {
-                tokio::spawn(process(stream, client_bus.sender.clone()));
-            }
+            let client_bus = ClientBus::new();
+            bus_clone.insert(
+                stream.peer_addr().unwrap().to_string(),
+                client_bus.sender.clone(),
+            );
+            tokio::spawn(process(stream, client_bus.sender.clone()));
         }
     }));
 
     for handle in handles {
-        println!("GOT {:#?}", handle.await);
+        println!("END GOT {:#?}", handle.await);
+    }
+    loop {
+        for bus in &busses {
+            println!("####: {:#?}", bus);
+        }
     }
 }
 
@@ -50,10 +61,12 @@ async fn process(stream: TcpStream, client_bus: Sender<BusMessage>) {
         loop {
             // let payload = rx.recv().await.unwrap();
             let payload = local_subscriber.recv().await.unwrap();
-            stream_write
-                .write_all(payload.to_string().as_bytes())
-                .await
-                .unwrap();
+            if payload.sender != id.clone() {
+                stream_write
+                    .write_all(payload.to_string().as_bytes())
+                    .await
+                    .unwrap();
+            }
         }
     });
 
