@@ -34,7 +34,7 @@ pub struct ClientBus<T: Clone> {
 
 impl<T: Clone> ClientBus<T> {
     pub fn new() -> Self {
-        let (bus_sender, bus_receiver) = BROADCASTChannel::<T>(1);
+        let (bus_sender, bus_receiver) = BROADCASTChannel::<T>(100);
         ClientBus {
             sender: bus_sender,
             receiver: bus_receiver,
@@ -115,7 +115,7 @@ pub enum Commands {
     List(ListType),
     Error,
 }
-enum ListType {
+pub enum ListType {
     User,
     Channels,
 }
