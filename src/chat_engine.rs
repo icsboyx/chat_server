@@ -26,8 +26,11 @@ pub async fn start_chat_engine(bus_tx: Sender<BusMessage>) {
 // }
 
 fn check_command(command: String) -> String {
-    match command.as_str() {
-        "list" => "list".to_string(),
+    let command_list = vec!["list", "help"];
+    let payload = command.to_lowercase().as_str().to_owned();
+    match payload {
+        _ if command_list[0] == payload => "list".to_string(),
+        _ if command_list[1] == payload => command_list.join(" /"),
         _ => format!(
             "Wrong command, /{} not implemented. Use /help to display all commands",
             command
